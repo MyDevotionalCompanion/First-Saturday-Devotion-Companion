@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>First Saturday Devotion Checklist</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+        }
+        .checklist-item {
+            margin: 10px 0;
+            font-size: 18px;
+        }
+        .checklist-item input {
+            margin-right: 10px;
+        }
+        .month-selector {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .month-selector button {
+            padding: 10px;
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #completion-message {
+            margin-top: 20px;
+            font-weight: bold;
+            color: green;
+            display: none;
+        }
+        .date-input {
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>First Saturday Devotion Checklist</h1>
+    
+    <div class="month-selector">
+        <button onclick="previousMonth()">Previous Month</button>
+        <span id="month-title">Month 1</span>
+        <button onclick="nextMonth()">Next Month</button>
+    </div>
+
+    <div class="date-input">
+        <label for="date">Date of First Saturday Devotion: </label>
+        <input type="date" id="date" onchange="saveDate()">
+    </div>
+    
+    <div id="checklist-container">
+        <div class="checklist-item">
+            <input type="checkbox" id="intention" onclick="checkCompletion()">
+            <label for="intention">Make the intention to make reparations to the Immaculate Heart of Mary for all the acts below</label>
+        </div>
+
+        <div class="checklist-item">
+            <input type="checkbox" id="holyCommunion" onclick="checkCompletion()">
+            <label for="holyCommunion">Receive Holy Communion</label>
+        </div>
+
+        <div class="checklist-item">
+            <input type="checkbox" id="confession" onclick="checkCompletion()">
+            <label for="confession">Receive Confession (within 8 days)</label>
+        </div>
+
+        <div class="checklist-item">
+            <input type="checkbox" id="rosary" onclick="checkCompletion()">
+            <label for="rosary">Pray the Rosary</label>
+        </div>
+
+        <div class="checklist-item">
+            <input type="checkbox" id="meditation" onclick="checkCompletion()">
+            <label for="meditation">15-Minute Meditation on a Rosary Mystery</label>
+        </div>
+    </div>
+
+    <div id="completion-message">
+        All requirements for this month’s First Saturday Devotion have been completed!
+    </div>
+
+    <button onclick="createICS()">Add to Calendar (iCal/Google)</button>
+
+    <script>
+        let currentMonth = 1;
+        const maxMonths = 5;
+
+        const checklistData = {};
+
+        function previousMonth() {
+            if (currentMonth > 1) {
+                currentMonth--;
+                updateMonthView();
+            }
+        }
+
+        function nextMonth() {
+            if (currentMonth < maxMonths) {
+                currentMonth++;
+                updateMonthView();
+            }
+        }
+
+        function updateMonthView() {
+            document.getElementById('month-title').innerText = 'Month ' + currentMonth;
+            const savedData = checklistData[currentMonth] || {};
+            document.getElementById('date').value = savedData.date || '';
+            document.getElementById('intention').checked = savedData.intention || false;
+            document.getElementById('holyCommunion').checked = savedData.holyCommunion || false;
+            document.getElementById('confession').checked = savedData.confession || false;
+            document.getElementById('rosary').checked = savedData.rosary || false;
+            document.getElementById('meditation').checked = savedData.meditation || false;
+            checkCompletion();
+        }
+
+        function saveDate() {
+            const dateValue = document.getElementById('date').value;
+            if (!checklistData[currentMonth]) {
+                checklistData[currentMonth] = {};
+            }
+            checklistData[currentMonth].date = dateValue;
+        }
+
+        function checkCompletion() {
+            if (!checklistData[currentMonth]) {
+                checklistData[currentMonth] = {};
+            }
+            checklistData[currentMonth].intention = document.getElementById('intention').checked;
+            checklistData[currentMonth].holyCommunion = document.getElementById('holyCommunion').checked;
+            checklistData[currentMonth].confession = document.getElementById('confession').checked;
+            checklistData[currentMonth].rosary = document.getElementById('rosary').checked;
+            checklistData[currentMonth].meditation = document.getElementById('meditation').checked;
+
+            const allChecked = checklistData[currentMonth].intention && checklistData[currentMonth].holyCommunion && checklistData[currentMonth].confession && checklistData[currentMonth].rosary && checklistData[currentMonth].meditation;
+            const message = document.getElementById('completion-message');
+            if (allChecked) {
+                message.style.display = 'block';
+            } else {
+                message.style.display = 'none';
+            }
+        }
+
+        function createICS() {
+            const startDate = new Date(checklistData[1]?.date);
+            if (!startDate) {
+                alert("Please set the date for the first month before adding to your calendar.");
+                return;
+            }
+
+            let calendarData = "BEGIN:VCALENDAR\nVERSION:2.0\nCALSCALE:GREGORIAN\n";
+            
+            for (let i = 0; i < maxMonths; i++) {
+                const currentDate = new Date(startDate);
+                currentDate.setMonth(startDate.getMonth() + i);
+
+                calendarData += `BEGIN:VEVENT\nSUMMARY:First Saturday Devotion - Month ${i + 1}\n`;
+                calendarData += `DESCRIPTION:First Saturday Devotion acts of reparation to the Immaculate Heart of Mary.\n`;
+                calendarData += `DTSTART:${formatDateICS(currentDate)}\nDTEND:${formatDateICS(currentDate, 1)}\n`;
+                calendarData += "RRULE:FREQ=MONTHLY;COUNT=1;BYDAY=1SA\nEND:VEVENT\n";
+            }
+
+            calendarData += "END:VCALENDAR";
+            const blob = new Blob([calendarData], { type: 'text/calendar;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'FirstSaturdayDevotion.ics';
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function formatDateICS(date, duration = 0) {
+            const formattedDate = new Date(date.getTime() + duration * 24 * 60 * 60 * 1000);
+            return formattedDate.toISOString().replace(/-|:|\.\d+/g, "").slice(0, 15);
+        }
+
+        updateMonthView();  // Initialize the view with the first month
+
+    </script>
+
+</body>
+</html>
